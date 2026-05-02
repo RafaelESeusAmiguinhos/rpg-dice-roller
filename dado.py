@@ -1,326 +1,294 @@
-import tkinter as tk
-from tkinter import ttk
-import random
-import math
+from ursina import *
+import random, math
 
-# ── Paleta de cores ──────────────────────────────────────────────────────────
-BG        = "#1a1a2e"
-PANEL     = "#16213e"
-ACCENT    = "#e94560"
-GOLD      = "#f5a623"
-TEXT      = "#eaeaea"
-SUBTEXT   = "#a0a0b0"
-BTN_HOVER = "#c73652"
-DICE_CLR  = {
-    "D4":  "#9b59b6",
-    "D6":  "#3498db",
-    "D8":  "#2ecc71",
-    "D12": "#e67e22",
-    "D20": "#e74c3c",
+# ── App ───────────────────────────────────────────────────────────────────────
+app = Ursina()
+window.title      = 'RPG Dice Roller 3D'
+window.borderless = False
+window.color      = color.black
+try:
+    window.exit_button.visible  = False
+    window.fps_counter.enabled  = False
+    window.cog_button.enabled   = False
+except Exception:
+    pass
+
+# ── Paleta ────────────────────────────────────────────────────────────────────
+GOLD    = color.rgb(245, 166, 35)
+ACCENT  = color.rgb(233,  69, 96)
+PANEL   = color.rgb( 14,  20, 40)
+SUBTEXT = color.rgb(160, 160, 176)
+DICE_CLR = {
+    'D4' : color.rgb(155,  89, 182),
+    'D6' : color.rgb( 52, 152, 219),
+    'D8' : color.rgb( 46, 204, 113),
+    'D12': color.rgb(230, 126,  34),
+    'D20': color.rgb(231,  76,  60),
+}
+DICE_SIDES = {'D4': 4, 'D6': 6, 'D8': 8, 'D12': 12, 'D20': 20}
+
+# ── Meshes 3D ─────────────────────────────────────────────────────────────────
+def _flat(verts, tris):
+    return [verts[i] for tri in tris for i in tri]
+
+def make_tetrahedron():
+    v = [Vec3(0,1,0), Vec3(-.816,-.333,.471),
+         Vec3(.816,-.333,.471), Vec3(0,-.333,-.943)]
+    t = [(0,1,2),(0,2,3),(0,3,1),(1,3,2)]
+    return Mesh(vertices=_flat(v,t), mode='triangle')
+
+def make_octahedron():
+    v = [Vec3(0,1,0), Vec3(0,-1,0), Vec3(1,0,0),
+         Vec3(-1,0,0), Vec3(0,0,1), Vec3(0,0,-1)]
+    t = [(0,2,4),(0,4,3),(0,3,5),(0,5,2),
+         (1,4,2),(1,3,4),(1,5,3),(1,2,5)]
+    return Mesh(vertices=_flat(v,t), mode='triangle')
+
+def make_icosahedron():
+    phi = (1 + math.sqrt(5)) / 2
+    raw = [(-1,phi,0),(1,phi,0),(-1,-phi,0),(1,-phi,0),
+           (0,-1,phi),(0,1,phi),(0,-1,-phi),(0,1,-phi),
+           (phi,0,-1),(phi,0,1),(-phi,0,-1),(-phi,0,1)]
+    n = math.sqrt(1 + phi**2)
+    v = [Vec3(x/n, y/n, z/n) for x,y,z in raw]
+    t = [(0,11,5),(0,5,1),(0,1,7),(0,7,10),(0,10,11),
+         (1,5,9),(5,11,4),(11,10,2),(10,7,6),(7,1,8),
+         (3,9,4),(3,4,2),(3,2,6),(3,6,8),(3,8,9),
+         (4,9,5),(2,4,11),(6,2,10),(8,6,7),(9,8,1)]
+    return Mesh(vertices=_flat(v,t), mode='triangle')
+
+def make_diamond():
+    """D8 visual alternativo: bipirâmide"""
+    v = [Vec3(0,1.2,0), Vec3(1,0,0), Vec3(0,0,1),
+         Vec3(-1,0,0), Vec3(0,0,-1), Vec3(0,-1.2,0)]
+    t = [(0,1,2),(0,2,3),(0,3,4),(0,4,1),
+         (5,2,1),(5,3,2),(5,4,3),(5,1,4)]
+    return Mesh(vertices=_flat(v,t), mode='triangle')
+
+MODEL_FN = {
+    'D4' : make_tetrahedron,
+    'D6' : None,           # usa 'cube' nativo
+    'D8' : make_diamond,
+    'D12': None,           # usa 'sphere' nativo
+    'D20': make_icosahedron,
 }
 
-DICE_SIDES = {"D4": 4, "D6": 6, "D8": 8, "D12": 12, "D20": 20}
+def get_model(dtype):
+    fn = MODEL_FN[dtype]
+    if fn is None:
+        return 'cube' if dtype == 'D6' else 'sphere'
+    return fn()
 
-# ── Faces ASCII dos dados ─────────────────────────────────────────────────────
-DICE_ART = {
-    "D4": [
-        "    /\\    ",
-        "   /  \\   ",
-        "  / {v:2} \\  ",
-        " /______\\ ",
-    ],
-    "D6": [
-        " _______ ",
-        "|       |",
-        "|  {v:2}   |",
-        "|_______|",
-    ],
-    "D8": [
-        "   /\\   ",
-        "  /{v:2} \\  ",
-        "  \\    /  ",
-        "   \\/   ",
-    ],
-    "D12": [
-        "  /----\\  ",
-        " / {v:3}  \\ ",
-        " \\      / ",
-        "  \\----/  ",
-    ],
-    "D20": [
-        "  /\\  /\\  ",
-        " /{v:3}\\/ \\",
-        " \\  /\\  / ",
-        "  \\/  \\/  ",
-    ],
-}
+# ── Estado ────────────────────────────────────────────────────────────────────
+sel_dice   = 'D20'
+quantity   = 1
+is_rolling = False
+dice_ents  = []
+val_texts  = []
+hist_lines = []
 
-
-class DiceApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("RPG Dice Roller")
-        self.configure(bg=BG)
-        self.resizable(False, False)
-        self.geometry("620x700")
-
-        self._anim_job = None
-        self._anim_step = 0
-        self._final_results = []
-
-        self._build_ui()
-        self._center_window()
-
-    # ── Layout ────────────────────────────────────────────────────────────────
-    def _build_ui(self):
-        # Título
-        hdr = tk.Frame(self, bg=BG)
-        hdr.pack(fill="x", pady=(18, 4))
-        tk.Label(hdr, text="⚔  RPG DICE ROLLER  ⚔", font=("Courier New", 20, "bold"),
-                 bg=BG, fg=GOLD).pack()
-        tk.Label(hdr, text="Escolha o dado e a quantidade", font=("Courier New", 10),
-                 bg=BG, fg=SUBTEXT).pack()
-
-        # Separador
-        tk.Frame(self, height=2, bg=ACCENT).pack(fill="x", padx=30, pady=8)
-
-        # Painel de seleção
-        sel = tk.Frame(self, bg=PANEL, bd=0, relief="flat")
-        sel.pack(fill="x", padx=30, pady=6, ipady=14)
-
-        # --- Tipo de dado ---
-        tk.Label(sel, text="TIPO DE DADO", font=("Courier New", 9, "bold"),
-                 bg=PANEL, fg=SUBTEXT).grid(row=0, column=0, padx=20, pady=(10, 2))
-
-        self.dice_var = tk.StringVar(value="D20")
-        dice_row = tk.Frame(sel, bg=PANEL)
-        dice_row.grid(row=1, column=0, padx=20, pady=(0, 10))
-        self._dice_btns = {}
-        for i, d in enumerate(["D4", "D6", "D8", "D12", "D20"]):
-            b = tk.Button(
-                dice_row, text=d, width=5, font=("Courier New", 10, "bold"),
-                bg=PANEL, fg=DICE_CLR[d], activebackground=DICE_CLR[d],
-                activeforeground=BG, bd=1, relief="solid",
-                cursor="hand2",
-                command=lambda d=d: self._select_dice(d),
-            )
-            b.grid(row=0, column=i, padx=3)
-            self._dice_btns[d] = b
-        self._select_dice("D20")
-
-        # --- Quantidade ---
-        tk.Label(sel, text="QUANTIDADE", font=("Courier New", 9, "bold"),
-                 bg=PANEL, fg=SUBTEXT).grid(row=0, column=1, padx=20, pady=(10, 2))
-
-        qty_frame = tk.Frame(sel, bg=PANEL)
-        qty_frame.grid(row=1, column=1, padx=20)
-
-        self.qty_var = tk.IntVar(value=1)
-        minus_btn = tk.Button(qty_frame, text="−", font=("Courier New", 14, "bold"),
-                              bg=PANEL, fg=ACCENT, activebackground=ACCENT,
-                              activeforeground=BG, bd=0, cursor="hand2",
-                              command=self._dec_qty)
-        minus_btn.grid(row=0, column=0, padx=4)
-
-        self.qty_lbl = tk.Label(qty_frame, textvariable=self.qty_var,
-                                width=3, font=("Courier New", 18, "bold"),
-                                bg=PANEL, fg=TEXT)
-        self.qty_lbl.grid(row=0, column=1)
-
-        plus_btn = tk.Button(qty_frame, text="+", font=("Courier New", 14, "bold"),
-                             bg=PANEL, fg=ACCENT, activebackground=ACCENT,
-                             activeforeground=BG, bd=0, cursor="hand2",
-                             command=self._inc_qty)
-        plus_btn.grid(row=0, column=2, padx=4)
-
-        sel.columnconfigure(0, weight=1)
-        sel.columnconfigure(1, weight=1)
-
-        # Botão Jogar
-        self.roll_btn = tk.Button(
-            self, text="🎲  JOGAR  🎲",
-            font=("Courier New", 15, "bold"),
-            bg=ACCENT, fg=TEXT,
-            activebackground=BTN_HOVER, activeforeground=TEXT,
-            relief="flat", bd=0, padx=20, pady=10,
-            cursor="hand2",
-            command=self._start_roll,
-        )
-        self.roll_btn.pack(pady=14)
-        self.roll_btn.bind("<Enter>", lambda e: self.roll_btn.config(bg=BTN_HOVER))
-        self.roll_btn.bind("<Leave>", lambda e: self.roll_btn.config(bg=ACCENT))
-
-        # Área de animação / resultado do dado
-        self.canvas = tk.Canvas(self, width=560, height=160,
-                                bg=PANEL, highlightthickness=0)
-        self.canvas.pack(padx=30, pady=(0, 6))
-
-        # Totalizador
-        tot_frame = tk.Frame(self, bg=BG)
-        tot_frame.pack(pady=4)
-        tk.Label(tot_frame, text="TOTAL:", font=("Courier New", 13, "bold"),
-                 bg=BG, fg=SUBTEXT).pack(side="left", padx=6)
-        self.total_var = tk.StringVar(value="—")
-        tk.Label(tot_frame, textvariable=self.total_var,
-                 font=("Courier New", 24, "bold"), bg=BG, fg=GOLD).pack(side="left")
-
-        # Histórico
-        tk.Frame(self, height=2, bg=ACCENT).pack(fill="x", padx=30, pady=6)
-        tk.Label(self, text="HISTÓRICO", font=("Courier New", 9, "bold"),
-                 bg=BG, fg=SUBTEXT).pack()
-
-        hist_wrap = tk.Frame(self, bg=BG)
-        hist_wrap.pack(fill="both", expand=True, padx=30, pady=(4, 14))
-
-        scrollbar = tk.Scrollbar(hist_wrap)
-        scrollbar.pack(side="right", fill="y")
-        self.history = tk.Text(hist_wrap, height=8,
-                               font=("Courier New", 9),
-                               bg=PANEL, fg=TEXT, insertbackground=TEXT,
-                               state="disabled", relief="flat",
-                               yscrollcommand=scrollbar.set)
-        self.history.pack(fill="both", expand=True)
-        scrollbar.config(command=self.history.yview)
-
-        self._draw_idle()
-
-    # ── Controles ────────────────────────────────────────────────────────────
-    def _select_dice(self, d):
-        self.dice_var.set(d)
-        for name, btn in self._dice_btns.items():
-            if name == d:
-                btn.config(bg=DICE_CLR[d], fg=BG, relief="sunken")
-            else:
-                btn.config(bg=PANEL, fg=DICE_CLR[name], relief="solid")
-
-    def _inc_qty(self):
-        if self.qty_var.get() < 20:
-            self.qty_var.set(self.qty_var.get() + 1)
-
-    def _dec_qty(self):
-        if self.qty_var.get() > 1:
-            self.qty_var.set(self.qty_var.get() - 1)
-
-    # ── Animação ─────────────────────────────────────────────────────────────
-    def _start_roll(self):
-        if self._anim_job is not None:
-            return  # já animando
-        dtype = self.dice_var.get()
-        qty   = self.qty_var.get()
-        sides = DICE_SIDES[dtype]
-        self._final_results = [random.randint(1, sides) for _ in range(qty)]
-        self._anim_step = 0
-        self.roll_btn.config(state="disabled")
-        self._animate(dtype, qty, sides)
-
-    def _animate(self, dtype, qty, sides):
-        STEPS = 18  # número de frames de animação
-        if self._anim_step < STEPS:
-            fake = [random.randint(1, sides) for _ in range(qty)]
-            self._draw_dice(dtype, fake, rolling=True)
-            speed = max(40, 120 - self._anim_step * 5)  # acelera no início, desacelera
-            self._anim_step += 1
-            self._anim_job = self.after(speed, lambda: self._animate(dtype, qty, sides))
+# ── Funções de lógica ─────────────────────────────────────────────────────────
+def select_dice(d):
+    global sel_dice
+    sel_dice = d
+    for name, btn in dice_btns.items():
+        dc = DICE_CLR[name]
+        if name == d:
+            btn.color = dc
+            btn.text_entity.color = color.black
         else:
-            self._anim_job = None
-            self._show_result(dtype, self._final_results)
-            self.roll_btn.config(state="normal")
+            btn.color = color.rgb(22, 33, 62)
+            btn.text_entity.color = dc
 
-    def _draw_dice(self, dtype, values, rolling=False):
-        self.canvas.delete("all")
-        qty   = len(values)
-        color = DICE_CLR[dtype]
-        w, h  = 560, 160
-        slot  = min(w // qty, 120)
-        start = (w - slot * qty) // 2
+def change_qty(delta):
+    global quantity
+    quantity = max(1, min(8, quantity + delta))
+    qty_lbl.text = str(quantity)
 
-        for i, v in enumerate(values):
-            cx = start + slot * i + slot // 2
-            cy = h // 2
-            r  = min(slot // 2 - 8, 46)
-            self._draw_shape(dtype, cx, cy, r, color, v, rolling)
+def clear_scene():
+    global dice_ents, val_texts
+    for e in dice_ents:  destroy(e)
+    for t in val_texts:  destroy(t)
+    dice_ents = []
+    val_texts = []
 
-    def _draw_shape(self, dtype, cx, cy, r, color, value, rolling):
-        c = self.canvas
-        flash = color if not rolling else "#ffffff"
-        lw = 2
+def roll_dice():
+    global is_rolling
+    if is_rolling:
+        return
+    is_rolling = True
+    roll_btn.enabled = False
+    clear_scene()
 
-        if dtype == "D4":
-            pts = self._polygon_pts(cx, cy, r, 3, -90)
-            c.create_polygon(pts, outline=flash, fill=BG, width=lw)
-            c.create_text(cx, cy + r * 0.18, text=str(value),
-                          font=("Courier New", 16, "bold"), fill=flash)
+    dtype  = sel_dice
+    qty    = quantity
+    sides  = DICE_SIDES[dtype]
+    vals   = [random.randint(1, sides) for _ in range(qty)]
+    dc     = DICE_CLR[dtype]
+    gap    = min(2.6, 9.0 / max(qty, 1))
+    ox     = -(qty - 1) * gap / 2
 
-        elif dtype == "D6":
-            c.create_rectangle(cx - r, cy - r, cx + r, cy + r,
-                                outline=flash, fill=BG, width=lw)
-            c.create_text(cx, cy, text=str(value),
-                          font=("Courier New", 18, "bold"), fill=flash)
-
-        elif dtype == "D8":
-            pts = self._polygon_pts(cx, cy, r, 4, 0)
-            c.create_polygon(pts, outline=flash, fill=BG, width=lw)
-            pts2 = self._polygon_pts(cx, cy, r, 4, 45)
-            c.create_polygon(pts2, outline=flash, fill=BG, width=lw)
-            c.create_text(cx, cy, text=str(value),
-                          font=("Courier New", 18, "bold"), fill=flash)
-
-        elif dtype == "D12":
-            pts = self._polygon_pts(cx, cy, r, 5, -90)
-            c.create_polygon(pts, outline=flash, fill=BG, width=lw)
-            c.create_text(cx, cy, text=str(value),
-                          font=("Courier New", 16, "bold"), fill=flash)
-
-        elif dtype == "D20":
-            pts = self._polygon_pts(cx, cy, r, 6, 0)
-            c.create_polygon(pts, outline=flash, fill=BG, width=lw)
-            c.create_text(cx, cy, text=str(value),
-                          font=("Courier New", 16, "bold"), fill=flash)
-
-    def _polygon_pts(self, cx, cy, r, n, offset_deg):
-        pts = []
-        for i in range(n):
-            a = math.radians(offset_deg + 360 * i / n)
-            pts.append(cx + r * math.cos(a))
-            pts.append(cy + r * math.sin(a))
-        return pts
-
-    def _draw_idle(self):
-        self.canvas.delete("all")
-        self.canvas.create_text(
-            280, 80, text="Selecione o dado e pressione JOGAR",
-            font=("Courier New", 11), fill=SUBTEXT,
+    for i, v in enumerate(vals):
+        e = Entity(
+            model    = get_model(dtype),
+            color    = dc,
+            position = Vec3(ox + i * gap, 6, 3),
+            scale    = 1.15,
+        )
+        dice_ents.append(e)
+        dur = 0.65 + random.uniform(0, 0.3)
+        e.animate_position(Vec3(ox + i * gap, -0.4, 3), duration=dur, curve=curve.out_bounce)
+        e.animate_rotation(
+            Vec3(random.uniform(360,1080), random.uniform(360,1080), random.uniform(360,1080)),
+            duration=dur + 0.15, curve=curve.out_expo,
         )
 
-    # ── Resultado ────────────────────────────────────────────────────────────
-    def _show_result(self, dtype, results):
-        self._draw_dice(dtype, results, rolling=False)
-        total = sum(results)
-        self.total_var.set(str(total))
-        self._add_history(dtype, results, total)
+    invoke(show_results, dtype, vals, delay=1.5)
 
-    def _add_history(self, dtype, results, total):
-        color = DICE_CLR[dtype]
-        qty   = len(results)
-        rolls = ", ".join(str(r) for r in results)
-        line  = f"  {qty}{dtype}  →  [{rolls}]  =  {total}\n"
+def show_results(dtype, vals):
+    global is_rolling, hist_lines
+    is_rolling = False
+    roll_btn.enabled = True
 
-        self.history.config(state="normal")
-        tag = f"clr_{dtype}"
-        self.history.tag_config(tag, foreground=color)
-        self.history.insert("1.0", line, tag)
-        self.history.config(state="disabled")
+    total    = sum(vals)
+    qty      = len(vals)
+    gap      = min(2.6, 9.0 / max(qty, 1))
+    ox       = -(qty - 1) * gap / 2
+    dc       = DICE_CLR[dtype]
 
-    # ── Utilitário ───────────────────────────────────────────────────────────
-    def _center_window(self):
-        self.update_idletasks()
-        sw = self.winfo_screenwidth()
-        sh = self.winfo_screenheight()
-        x  = (sw - self.winfo_width())  // 2
-        y  = (sh - self.winfo_height()) // 2
-        self.geometry(f"+{x}+{y}")
+    total_lbl.text  = f'TOTAL:  {total}'
+    total_lbl.color = GOLD
 
+    for i, (e, v) in enumerate(zip(dice_ents, vals)):
+        t = Text(
+            str(v),
+            parent    = scene,
+            position  = Vec3(ox + i * gap, 1.2, 3),
+            scale     = 8,
+            color     = color.white,
+            billboard = True,
+        )
+        val_texts.append(t)
+        e.animate_scale(1.45, duration=0.12)
+        e.animate_scale(1.15, duration=0.18, delay=0.12)
 
-if __name__ == "__main__":
-    app = DiceApp()
-    app.mainloop()
+    rolls_str = ' + '.join(str(v) for v in vals)
+    hist_lines.insert(0, f'{qty}{dtype}  [{rolls_str}] = {total}')
+    hist_lines = hist_lines[:11]
+    hist_txt.text = '\n'.join(hist_lines)
+
+# ── Câmera e iluminação ───────────────────────────────────────────────────────
+camera.position  = Vec3(0, 2, -13)
+camera.rotation_x = -10
+
+DirectionalLight(y=6, z=-4, rotation=Vec3(40, -30, 0), shadows=False)
+AmbientLight(color=color.rgba(70, 70, 115, 255))
+
+# ── Cenário: chão + grade neon ────────────────────────────────────────────────
+Entity(model='plane', scale=Vec3(40, 1, 26), position=Vec3(0,-2.1,4),
+       color=color.rgb(5, 5, 14))
+
+for i in range(-10, 11):
+    Entity(model='cube', scale=Vec3(.012,.004,26), position=Vec3(i*1.5,-2.09,4),
+           color=color.rgb(20,20,55))
+for j in range(-8, 9):
+    Entity(model='cube', scale=Vec3(32,.004,.012), position=Vec3(0,-2.09,j*1.4),
+           color=color.rgb(20,20,55))
+
+# Borda luminosa do chão
+for x in (-7.5, 7.5):
+    Entity(model='cube', scale=Vec3(.06,.06,26), position=Vec3(x,-2.06,4),
+           color=ACCENT)
+
+# ── UI — painéis de fundo ─────────────────────────────────────────────────────
+Entity(parent=camera.ui, model='quad', scale=Vec2(0.30, 0.92),
+       position=Vec2(-0.565, 0), color=color.rgb(12,18,38,210))
+Entity(parent=camera.ui, model='quad', scale=Vec2(0.30, 0.92),
+       position=Vec2( 0.565, 0), color=color.rgb(12,18,38,210))
+Entity(parent=camera.ui, model='quad', scale=Vec2(1.14, 0.08),
+       position=Vec2(0, 0.455), color=color.rgb(20,30,58,220))
+Entity(parent=camera.ui, model='quad', scale=Vec2(0.44, 0.074),
+       position=Vec2(0, -0.435), color=color.rgb(20,30,58,220))
+
+# ── UI — título ───────────────────────────────────────────────────────────────
+Text('⚔   RPG DICE ROLLER   ⚔', parent=camera.ui,
+     scale=1.35, position=Vec2(0, 0.455), origin=(0,0), color=GOLD)
+
+# ── UI — tipo de dado ─────────────────────────────────────────────────────────
+Text('TIPO DE DADO', parent=camera.ui, scale=0.65,
+     position=Vec2(-0.565, 0.365), origin=(0,0), color=SUBTEXT)
+
+dice_btns = {}
+for idx, d in enumerate(['D4','D6','D8','D12','D20']):
+    btn = Button(
+        text=d, parent=camera.ui,
+        scale=Vec2(0.20, 0.068),
+        position=Vec2(-0.565, 0.27 - idx * 0.096),
+        color=color.rgb(22, 33, 62),
+        highlight_color=DICE_CLR[d],
+        pressed_color=DICE_CLR[d],
+        text_color=DICE_CLR[d],
+    )
+    btn.on_click = (lambda d=d: select_dice(d))
+    dice_btns[d] = btn
+
+# ── UI — quantidade ───────────────────────────────────────────────────────────
+Text('QUANTIDADE', parent=camera.ui, scale=0.65,
+     position=Vec2(-0.565, -0.215), origin=(0,0), color=SUBTEXT)
+
+minus_btn = Button(text='−', parent=camera.ui,
+    scale=Vec2(0.068,0.068), position=Vec2(-0.655,-0.30),
+    color=color.rgb(40,15,22), highlight_color=ACCENT, text_color=ACCENT)
+minus_btn.on_click = lambda: change_qty(-1)
+
+qty_lbl = Text('1', parent=camera.ui, scale=2.4,
+               position=Vec2(-0.565,-0.30), origin=(0,0), color=color.white)
+
+plus_btn = Button(text='+', parent=camera.ui,
+    scale=Vec2(0.068,0.068), position=Vec2(-0.475,-0.30),
+    color=color.rgb(40,15,22), highlight_color=ACCENT, text_color=ACCENT)
+plus_btn.on_click = lambda: change_qty(1)
+
+# ── UI — botão jogar ──────────────────────────────────────────────────────────
+roll_btn = Button(
+    text='🎲   JOGAR', parent=camera.ui,
+    scale=Vec2(0.22, 0.085), position=Vec2(-0.565, -0.41),
+    color=ACCENT,
+    highlight_color=color.rgb(199, 54, 82),
+    pressed_color=color.rgb(140, 30, 50),
+    text_color=color.white,
+)
+roll_btn.on_click = roll_dice
+
+# ── UI — histórico ────────────────────────────────────────────────────────────
+Text('HISTÓRICO', parent=camera.ui, scale=0.65,
+     position=Vec2(0.565, 0.365), origin=(0,0), color=SUBTEXT)
+hist_txt = Text('', parent=camera.ui, scale=0.58,
+                position=Vec2(0.425, 0.300), origin=(0,1),
+                color=color.rgb(200,200,220), wordwrap=26)
+
+# ── UI — total ────────────────────────────────────────────────────────────────
+total_lbl = Text('TOTAL:  —', parent=camera.ui, scale=1.35,
+                 position=Vec2(0, -0.435), origin=(0,0), color=GOLD)
+
+# ── Dica SPACE ────────────────────────────────────────────────────────────────
+Text('[SPACE] para jogar  •  [ESC] para sair', parent=camera.ui,
+     scale=0.55, position=Vec2(0, -0.47), origin=(0,1),
+     color=color.rgb(100,100,130))
+
+# ── Seleção inicial ───────────────────────────────────────────────────────────
+select_dice('D20')
+
+# ── Loop de atualização ───────────────────────────────────────────────────────
+def update():
+    if not is_rolling:
+        for e in dice_ents:
+            e.rotation_y += time.dt * 28
+
+def input(key):
+    if key == 'escape':
+        application.quit()
+    elif key == 'space' and not is_rolling:
+        roll_dice()
+
+app.run()
