@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPG Dice Roller</title>
+<style>
+/* ── Variáveis ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:      #09091a;
+  --panel:   #0e1428;
+  --panel2:  #151e3a;
+  --border:  #252f55;
+  --gold:    #f5a623;
+  --accent:  #e94560;
+  --acc2:    #b02f47;
+  --text:    #eaeaea;
+  --sub:     #7a7a99;
+  --d4:      #9b59b6;
+  --d6:      #3498db;
+  --d8:      #2ecc71;
+  --d12:     #e67e22;
+  --d20:     #e74c3c;
+}
+
+/* ── Reset & Base ──────────────────────────────────────────────────────── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  background:var(--bg); color:var(--text);
+  font-family:'Courier New', Courier, monospace;
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+#app {
+  display:grid;
+  grid-template-rows:52px 1fr 64px;
+  grid-template-columns:220px 1fr 230px;
+  grid-template-areas:
+    "header header header"
+    "left   center right"
+    "footer footer footer";
+  height:100vh;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+header {
+  grid-area:header;
+  background:var(--panel2);
+  border-bottom:2px solid var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  gap:16px;
+}
+header h1 {
+  font-size:1.35rem; letter-spacing:.18em;
+  color:var(--gold); text-transform:uppercase;
+}
+.sword { font-size:1.5rem; }
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+footer {
+  grid-area:footer;
+  background:var(--panel2);
+  border-top:3px solid var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  gap:32px;
+}
+#total-box {
+  font-size:1.6rem; font-weight:bold;
+  color:var(--gold); letter-spacing:.08em;
+  transition:all .3s;
+}
+#parcelas {
+  font-size:.75rem; color:var(--sub);
+  letter-spacing:.05em;
+}
+
+/* ── Painel Esquerdo ───────────────────────────────────────────────────── */
+#left {
+  grid-area:left;
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  padding:18px 14px;
+  display:flex; flex-direction:column; gap:14px;
+  overflow-y:auto;
+}
+.section-label {
+  font-size:.68rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--sub); text-align:center; padding-bottom:4px;
+  border-bottom:1px solid var(--border);
+}
+
+/* Botões dos dados */
+#dice-types { display:flex; flex-direction:column; gap:7px; }
+.dice-btn {
+  display:flex; align-items:center; gap:10px;
+  background:var(--panel2); border:1px solid var(--border);
+  border-radius:7px; padding:10px 12px; cursor:pointer;
+  transition:all .2s; color:inherit; font-family:inherit;
+  font-size:.95rem; font-weight:bold; letter-spacing:.06em;
+}
+.dice-btn:hover   { border-color:var(--c); transform:translateX(3px); }
+.dice-btn.active  { background:var(--c); color:#000; border-color:var(--c); }
+.dice-btn .pip    { width:12px; height:12px; border-radius:2px; background:var(--c); flex-shrink:0; }
+.dice-btn.active .pip { background:#000; }
+
+/* Quantidade */
+#qty-row {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+}
+.qty-btn {
+  width:36px; height:36px; border-radius:8px;
+  background:var(--panel2); border:1px solid var(--border);
+  color:var(--accent); font-size:1.4rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s; font-family:inherit;
+}
+.qty-btn:hover { background:var(--accent); color:#fff; }
+#qty-display {
+  font-size:2rem; font-weight:bold; color:var(--text);
+  min-width:40px; text-align:center;
+}
+
+/* Botão Jogar */
+#roll-btn {
+  width:100%; padding:14px; border-radius:10px;
+  background:var(--accent); color:#fff;
+  border:none; cursor:pointer; font-family:inherit;
+  font-size:1rem; font-weight:bold; letter-spacing:.12em;
+  text-transform:uppercase;
+  transition:all .2s;
+  box-shadow:0 4px 18px rgba(233,69,96,.35);
+}
+#roll-btn:hover:not(:disabled) {
+  background:var(--acc2);
+  box-shadow:0 6px 24px rgba(233,69,96,.5);
+  transform:translateY(-1px);
+}
+#roll-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+.hint { font-size:.65rem; color:var(--sub); text-align:center; }
+
+/* ── Centro ────────────────────────────────────────────────────────────── */
+#center {
+  grid-area:center;
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+/* Grade de perspectiva */
+#center::before {
+  content:'';
+  position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(90deg, transparent, transparent 59px,
+      rgba(28,28,80,.55) 60px),
+    repeating-linear-gradient(0deg, transparent, transparent 59px,
+      rgba(28,28,80,.55) 60px);
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 60%, black 40%, transparent 100%);
+  pointer-events:none;
+}
+/* Linhas de perspectiva animadas */
+#center::after {
+  content:'';
+  position:absolute; bottom:0; left:50%; width:0; height:0;
+  border-left:520px solid transparent;
+  border-right:520px solid transparent;
+  border-bottom:320px solid rgba(233,69,96,.04);
+  transform:translateX(-50%);
+  pointer-events:none;
+}
+
+#dice-area {
+  position:relative; z-index:1;
+  display:flex; align-items:center; justify-content:center;
+  gap:24px; flex-wrap:wrap;
+  padding:20px;
+}
+#hint-center {
+  color:var(--sub); font-size:.85rem; letter-spacing:.1em;
+  text-align:center;
+}
+
+/* ── Wrapper 3D ─────────────────────────────────────────────────────────── */
+.die-wrapper {
+  perspective:600px;
+  width:130px; height:130px;
+  display:flex; align-items:center; justify-content:center;
+}
+.die-face {
+  width:130px; height:130px;
+  position:relative;
+  transform-style:preserve-3d;
+  display:flex; align-items:center; justify-content:center;
+}
+/* canvas dentro da face */
+.die-face canvas {
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+}
+/* Número em cima */
+.die-value {
+  position:relative; z-index:2;
+  font-size:2.2rem; font-weight:bold; color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.8);
+  pointer-events:none;
+  transition:opacity .2s;
+}
+
+/* ── Animações ──────────────────────────────────────────────────────────── */
+@keyframes rolling {
+  0%   { transform: rotateY(0deg)   rotateX(0deg); }
+  25%  { transform: rotateY(200deg) rotateX(120deg) scale3d(.85,.85,.85); }
+  55%  { transform: rotateY(480deg) rotateX(260deg) scale3d(1.08,1.08,1.08); }
+  80%  { transform: rotateY(660deg) rotateX(340deg); }
+  100% { transform: rotateY(720deg) rotateX(360deg); }
+}
+@keyframes landed {
+  0%   { transform: scale(1.35) translateY(-18px); }
+  45%  { transform: scale(.96)  translateY(0); }
+  68%  { transform: scale(1.06) translateY(-5px); }
+  85%  { transform: scale(.99)  translateY(0); }
+  100% { transform: scale(1)    translateY(0); }
+}
+@keyframes glow-pulse {
+  0%,100% { filter: drop-shadow(0 0 6px var(--c)); }
+  50%      { filter: drop-shadow(0 0 18px var(--c)); }
+}
+
+.die-face.is-rolling {
+  animation: rolling 1.85s cubic-bezier(.36,.07,.19,.97) forwards;
+}
+.die-face.has-landed {
+  animation: landed .5s cubic-bezier(.22,.61,.36,1) forwards,
+             glow-pulse 1.2s ease-in-out .5s 2;
+}
+
+/* Total animate */
+@keyframes pop-in {
+  0%   { transform:scale(.6); opacity:0; }
+  60%  { transform:scale(1.1); opacity:1; }
+  100% { transform:scale(1); }
+}
+.total-pop { animation: pop-in .35s ease-out forwards; }
+
+/* ── Painel Direito ─────────────────────────────────────────────────────── */
+#right {
+  grid-area:right;
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  padding:18px 12px;
+  display:flex; flex-direction:column; gap:10px;
+  overflow:hidden;
+}
+#history-list {
+  display:flex; flex-direction:column; gap:6px;
+  overflow-y:auto; flex:1;
+}
+.hist-item {
+  background:var(--panel2);
+  border-radius:6px; padding:7px 10px;
+  border-left:3px solid var(--c, var(--accent));
+  font-size:.72rem;
+  animation: slide-in .25s ease-out;
+}
+.hist-type  { color:var(--c); font-weight:bold; margin-bottom:2px; }
+.hist-rolls { color:var(--sub); font-size:.68rem; }
+.hist-total { color:var(--c); font-weight:bold; font-size:.88rem; }
+
+@keyframes slide-in {
+  from { opacity:0; transform:translateX(20px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header>
+    <span class="sword">⚔</span>
+    <h1>RPG Dice Roller</h1>
+    <span class="sword">⚔</span>
+  </header>
+
+  <!-- Painel esquerdo -->
+  <div id="left">
+    <div class="section-label">Tipo de Dado</div>
+    <div id="dice-types">
+      <button class="dice-btn" data-dice="D4"  style="--c:var(--d4)">
+        <span class="pip"></span>D4
+      </button>
+      <button class="dice-btn" data-dice="D6"  style="--c:var(--d6)">
+        <span class="pip"></span>D6
+      </button>
+      <button class="dice-btn" data-dice="D8"  style="--c:var(--d8)">
+        <span class="pip"></span>D8
+      </button>
+      <button class="dice-btn" data-dice="D12" style="--c:var(--d12)">
+        <span class="pip"></span>D12
+      </button>
+      <button class="dice-btn active" data-dice="D20" style="--c:var(--d20)">
+        <span class="pip"></span>D20
+      </button>
+    </div>
+
+    <div class="section-label">Quantidade</div>
+    <div id="qty-row">
+      <button class="qty-btn" id="btn-minus">−</button>
+      <span id="qty-display">1</span>
+      <button class="qty-btn" id="btn-plus">+</button>
+    </div>
+
+    <button id="roll-btn">🎲 &nbsp; JOGAR</button>
+    <div class="hint">[ESPAÇO] para jogar</div>
+    <div class="hint">[ESC] &nbsp; para sair</div>
+  </div>
+
+  <!-- Centro -->
+  <div id="center">
+    <div id="dice-area">
+      <div id="hint-center">Selecione o dado e pressione JOGAR</div>
+    </div>
+  </div>
+
+  <!-- Painel direito -->
+  <div id="right">
+    <div class="section-label">Histórico</div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- Footer / Total -->
+  <footer>
+    <div id="total-box">TOTAL: —</div>
+    <div id="parcelas"></div>
+  </footer>
+
+</div>
+
+<script>
+// ── Constantes ──────────────────────────────────────────────────────────────
+const DICE_COLOR = {
+  D4:'#9b59b6', D6:'#3498db', D8:'#2ecc71', D12:'#e67e22', D20:'#e74c3c'
+};
+const DICE_SIDES  = { D4:4, D6:6, D8:8, D12:12, D20:20 };
+const DICE_SHAPE  = {
+  D4 :{ n:3, off:-90 },
+  D6 :{ n:4, off: 45 },
+  D8 :{ n:4, off:  0 },
+  D12:{ n:5, off:-90 },
+  D20:{ n:6, off:  0 },
+};
+
+// ── Estado ──────────────────────────────────────────────────────────────────
+let selDice   = 'D20';
+let quantity  = 1;
+let isRolling = false;
+let rollVals  = [];
+let histItems = [];
+
+// ── Utils ───────────────────────────────────────────────────────────────────
+const darker  = (hex,f=.5) => {
+  let n=parseInt(hex.slice(1),16);
+  return `rgb(${[(n>>16)&255,(n>>8)&255,n&255].map(v=>Math.round(v*f)).join(',')})`;
+};
+const lighter = (hex,f=1.5) => {
+  let n=parseInt(hex.slice(1),16);
+  return `rgb(${[(n>>16)&255,(n>>8)&255,n&255].map(v=>Math.min(255,Math.round(v*f))).join(',')})`;
+};
+
+function polyPts(cx,cy,rx,ry,n,offDeg){
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const a=(offDeg+360*i/n)*Math.PI/180;
+    pts.push([cx+rx*Math.cos(a), cy+ry*Math.sin(a)]);
+  }
+  return pts;
+}
+
+// ── Desenho do dado no canvas ───────────────────────────────────────────────
+function drawDie(canvas, dtype, value){
+  const S   = canvas.width;
+  const ctx = canvas.getContext('2d');
+  const cx  = S/2, cy = S/2, r = S*0.42;
+  const clr = DICE_COLOR[dtype];
+  const {n, off} = DICE_SHAPE[dtype];
+
+  ctx.clearRect(0,0,S,S);
+
+  // helper
+  function path(pts){ ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath(); }
+
+  // Sombra
+  ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=14; ctx.shadowOffsetY=6;
+  path(polyPts(cx,cy+4,r*.98,r*.98,n,off));
+  ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+  // Face escura (fundo)
+  path(polyPts(cx+4,cy+4,r,r,n,off));
+  ctx.fillStyle=darker(clr,.45); ctx.fill();
+
+  // Face principal
+  path(polyPts(cx,cy,r,r,n,off));
+  ctx.fillStyle=clr; ctx.fill();
+
+  // Gradiente interno (highlight)
+  const grad=ctx.createRadialGradient(cx-r*.28,cy-r*.28,r*.05,cx,cy,r);
+  grad.addColorStop(0,lighter(clr,1.65));
+  grad.addColorStop(.45,clr);
+  grad.addColorStop(1,darker(clr,.6));
+  ctx.fillStyle=grad; ctx.fill();
+
+  // Contorno
+  path(polyPts(cx,cy,r,r,n,off));
+  ctx.strokeStyle=lighter(clr,1.5); ctx.lineWidth=2; ctx.stroke();
+
+  // Borda extra brilhante
+  path(polyPts(cx,cy,r,r,n,off));
+  ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1; ctx.stroke();
+}
+
+// ── Cria elemento de dado ───────────────────────────────────────────────────
+function createDieEl(dtype){
+  const wrapper = document.createElement('div');
+  wrapper.className='die-wrapper';
+  wrapper.style.setProperty('--c', DICE_COLOR[dtype]);
+
+  const face = document.createElement('div');
+  face.className='die-face';
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = 130;
+  canvas.height = 130;
+  drawDie(canvas, dtype, null);
+
+  const val = document.createElement('div');
+  val.className='die-value';
+  val.textContent='?';
+
+  face.appendChild(canvas);
+  face.appendChild(val);
+  wrapper.appendChild(face);
+  return { wrapper, face, canvas, val };
+}
+
+// ── UI: botões de dado ──────────────────────────────────────────────────────
+document.querySelectorAll('.dice-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    selDice = btn.dataset.dice;
+    document.querySelectorAll('.dice-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// ── Quantidade ──────────────────────────────────────────────────────────────
+const qtyDisplay = document.getElementById('qty-display');
+document.getElementById('btn-minus').addEventListener('click',()=>{
+  if(quantity>1){ quantity--; qtyDisplay.textContent=quantity; }
+});
+document.getElementById('btn-plus').addEventListener('click',()=>{
+  if(quantity<8){ quantity++; qtyDisplay.textContent=quantity; }
+});
+
+// ── Rolar dados ─────────────────────────────────────────────────────────────
+const diceArea  = document.getElementById('dice-area');
+const hintEl    = document.getElementById('hint-center');
+const totalBox  = document.getElementById('total-box');
+const parcelasEl= document.getElementById('parcelas');
+const rollBtn   = document.getElementById('roll-btn');
+
+function roll(){
+  if(isRolling) return;
+  isRolling = true;
+  rollBtn.disabled = true;
+
+  const dtype = selDice;
+  const sides = DICE_SIDES[dtype];
+  const qty   = quantity;
+
+  // Resultados finais
+  rollVals = Array.from({length:qty},()=>Math.ceil(Math.random()*sides));
+
+  // Limpa área
+  diceArea.innerHTML='';
+
+  // Cria os dados
+  const dies=[];
+  for(let i=0;i<qty;i++){
+    const el = createDieEl(dtype);
+    diceArea.appendChild(el.wrapper);
+    dies.push(el);
+  }
+
+  // Anima cada dado com delay escalonado
+  const ANIM_DUR = 1850; // ms
+  let flashInterval;
+  let settled = 0;
+
+  // Flash de números durante rolagem
+  flashInterval = setInterval(()=>{
+    if(!isRolling){ clearInterval(flashInterval); return; }
+    dies.forEach(d=>{
+      const rand = Math.ceil(Math.random()*sides);
+      d.val.textContent = rand;
+      drawDie(d.canvas, dtype, rand);
+    });
+  }, 80);
+
+  // Inicia animação CSS em cada dado com delay leve
+  dies.forEach((d, i)=>{
+    setTimeout(()=>{
+      d.face.classList.add('is-rolling');
+    }, i * 80);
+  });
+
+  // Após animação: mostra resultado
+  setTimeout(()=>{
+    clearInterval(flashInterval);
+
+    dies.forEach((d, i)=>{
+      const finalVal = rollVals[i];
+      d.face.classList.remove('is-rolling');
+
+      // Pequeno delay por dado para desacelerar progressivamente
+      setTimeout(()=>{
+        drawDie(d.canvas, dtype, finalVal);
+        d.val.textContent = finalVal;
+        d.face.classList.add('has-landed');
+      }, i * 120);
+    });
+
+    // Total
+    const total = rollVals.reduce((a,b)=>a+b,0);
+    setTimeout(()=>{
+      totalBox.textContent = `TOTAL:  ${total}`;
+      totalBox.classList.remove('total-pop');
+      void totalBox.offsetWidth; // force reflow
+      totalBox.classList.add('total-pop');
+
+      parcelasEl.textContent = qty>1 ? rollVals.join(' + ') : '';
+
+      addHistory(dtype, rollVals, total);
+
+      isRolling = false;
+      rollBtn.disabled = false;
+    }, qty * 120 + 200);
+
+  }, ANIM_DUR);
+}
+
+// ── Histórico ────────────────────────────────────────────────────────────────
+const histList = document.getElementById('history-list');
+function addHistory(dtype, vals, total){
+  const clr  = DICE_COLOR[dtype];
+  const item = document.createElement('div');
+  item.className='hist-item';
+  item.style.setProperty('--c', clr);
+  item.innerHTML=`
+    <div class="hist-type">${vals.length}${dtype}</div>
+    <div class="hist-rolls">[${vals.join(', ')}]</div>
+    <div class="hist-total">= ${total}</div>
+  `;
+  histList.prepend(item);
+
+  // Limite de 14 itens
+  while(histList.children.length > 14){
+    histList.removeChild(histList.lastChild);
+  }
+}
+
+// ── Botão jogar ───────────────────────────────────────────────────────────
+rollBtn.addEventListener('click', roll);
+
+// ── Teclado ───────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); roll(); }
+  if(e.code==='Escape') window.close();
+  // Atalhos 1-5 para selecionar dado
+  const map={'Digit1':'D4','Digit2':'D6','Digit3':'D8','Digit4':'D12','Digit5':'D20'};
+  if(map[e.code]){
+    document.querySelector(`[data-dice="${map[e.code]}"]`)?.click();
+  }
+});
+</script>
+</body>
+</html>
