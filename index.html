@@ -4,197 +4,117 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>RPG Dice Roller 3D</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-/* ── Variáveis ──────────────────────────────────────────────────────────── */
 :root{
-  --bg:#09091a; --panel:#0e1428; --panel2:#141e3a; --brd:#252f55;
-  --gold:#f5a623; --accent:#e94560; --acc2:#b02f47;
-  --text:#eaeaea; --sub:#7a7a99;
-  --d4:#9b59b6; --d6:#3498db; --d8:#2ecc71; --d12:#e67e22; --d20:#e74c3c;
-  --hdr:50px; --ftr:60px; --lw:215px; --rw:225px;
+  --bg:#09091a;--panel:#0e1428;--p2:#141e3a;--brd:#252f55;
+  --gold:#f5a623;--acc:#e94560;--acc2:#b02f47;
+  --txt:#eaeaea;--sub:#7a7a99;
+  --d4:#9b59b6;--d6:#3498db;--d8:#2ecc71;--d12:#e67e22;--d20:#e74c3c;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
-  color:var(--text);font-family:'Courier New',Courier,monospace;touch-action:none}
+  color:var(--txt);font-family:'Courier New',monospace;user-select:none}
 
-/* ══ DESKTOP ════════════════════════════════════════════════════════════════ */
-#app{
-  display:grid;height:100vh;
-  grid-template-rows:var(--hdr) 1fr var(--ftr);
-  grid-template-columns:var(--lw) 1fr var(--rw);
-  grid-template-areas:
-    "hd hd hd"
-    "lt ct rt"
-    "ft ft ft";
-}
+/* ── Layout Desktop ─────────────────────────────────────────────────────── */
+#app{display:grid;height:100vh;
+  grid-template-rows:50px 1fr 62px;
+  grid-template-columns:215px 1fr 225px;
+  grid-template-areas:"hd hd hd""lt ct rt""ft ft ft"}
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
-header{
-  grid-area:hd;background:var(--panel2);border-bottom:2px solid var(--accent);
-  display:flex;align-items:center;justify-content:center;gap:12px;z-index:10;
-}
+header{grid-area:hd;background:var(--p2);border-bottom:2px solid var(--acc);
+  display:flex;align-items:center;justify-content:center;gap:14px}
 header h1{font-size:1.2rem;letter-spacing:.2em;color:var(--gold);text-transform:uppercase}
 
-/* ── Footer ─────────────────────────────────────────────────────────────── */
-footer{
-  grid-area:ft;background:var(--panel2);border-top:3px solid var(--accent);
-  display:flex;align-items:center;justify-content:center;gap:20px;
-  padding:0 12px;
-}
-#total-box{font-size:1.5rem;font-weight:bold;color:var(--gold);letter-spacing:.08em}
-#parcelas{font-size:.72rem;color:var(--sub);letter-spacing:.04em}
+footer{grid-area:ft;background:var(--p2);border-top:3px solid var(--acc);
+  display:flex;align-items:center;justify-content:center;gap:24px;padding:0 16px}
+#total-box{font-size:1.5rem;font-weight:bold;color:var(--gold);letter-spacing:.08em;
+  transition:.3s}
+#parcelas{font-size:.72rem;color:var(--sub)}
 
 /* ── Painel Esquerdo ─────────────────────────────────────────────────────── */
-#left{
-  grid-area:lt;background:var(--panel);border-right:1px solid var(--brd);
-  padding:14px 12px;display:flex;flex-direction:column;gap:11px;overflow-y:auto;
-}
-.slbl{
-  font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);
-  text-align:center;padding-bottom:4px;border-bottom:1px solid var(--brd);
-}
+#left{grid-area:lt;background:var(--panel);border-right:1px solid var(--brd);
+  padding:14px 12px;display:flex;flex-direction:column;gap:11px;overflow-y:auto}
+.slbl{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);
+  text-align:center;padding-bottom:4px;border-bottom:1px solid var(--brd)}
 #dice-types{display:flex;flex-direction:column;gap:6px}
-.dice-btn{
-  display:flex;align-items:center;gap:9px;background:var(--panel2);
+.dbtn{display:flex;align-items:center;gap:9px;background:var(--p2);
   border:1px solid var(--brd);border-radius:7px;padding:9px 11px;cursor:pointer;
   color:inherit;font-family:inherit;font-size:.92rem;font-weight:bold;
-  letter-spacing:.06em;transition:all .18s;user-select:none;
-}
-.dice-btn:hover{border-color:var(--c);transform:translateX(3px)}
-.dice-btn.active{background:var(--c);color:#000;border-color:var(--c)}
+  letter-spacing:.06em;transition:.18s}
+.dbtn:hover{border-color:var(--c);transform:translateX(3px)}
+.dbtn.active{background:var(--c);color:#000;border-color:var(--c)}
 .pip{width:10px;height:10px;border-radius:2px;background:var(--c);flex-shrink:0}
-.dice-btn.active .pip{background:#000}
+.dbtn.active .pip{background:#000}
 
 #qty-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.qty-btn{
-  width:38px;height:38px;border-radius:8px;background:var(--panel2);
-  border:1px solid var(--brd);color:var(--accent);font-size:1.4rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:.15s;
-  font-family:inherit;user-select:none;
-}
-.qty-btn:hover,.qty-btn:active{background:var(--accent);color:#fff}
-#qty-display{font-size:2rem;font-weight:bold;color:var(--text);min-width:36px;text-align:center}
+.qbtn{width:38px;height:38px;border-radius:8px;background:var(--p2);
+  border:1px solid var(--brd);color:var(--acc);font-size:1.4rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.15s;font-family:inherit}
+.qbtn:hover,.qbtn:active{background:var(--acc);color:#fff}
+#qty-display{font-size:2rem;font-weight:bold;min-width:36px;text-align:center}
 
-#roll-btn{
-  width:100%;padding:13px;border-radius:10px;background:var(--accent);color:#fff;
+#roll-btn{width:100%;padding:13px;border-radius:10px;background:var(--acc);color:#fff;
   border:none;cursor:pointer;font-family:inherit;font-size:.95rem;font-weight:bold;
   letter-spacing:.12em;text-transform:uppercase;transition:.2s;
-  box-shadow:0 4px 18px rgba(233,69,96,.35);user-select:none;
-}
-#roll-btn:hover:not(:disabled){background:var(--acc2);transform:translateY(-1px);
-  box-shadow:0 6px 24px rgba(233,69,96,.5)}
+  box-shadow:0 4px 18px rgba(233,69,96,.35)}
+#roll-btn:hover:not(:disabled){background:var(--acc2);transform:translateY(-1px)}
 #roll-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .hint{font-size:.62rem;color:var(--sub);text-align:center}
 
-/* ── Centro (Three.js) ───────────────────────────────────────────────────── */
-#center{grid-area:ct;position:relative;overflow:hidden}
-#center canvas{display:block;width:100%!important;height:100%!important}
+/* ── Centro (Canvas) ─────────────────────────────────────────────────────── */
+#center{grid-area:ct;position:relative;overflow:hidden;background:var(--bg)}
+#c3d{display:block;width:100%;height:100%}
 
 /* ── Painel Direito ──────────────────────────────────────────────────────── */
-#right{
-  grid-area:rt;background:var(--panel);border-left:1px solid var(--brd);
-  padding:14px 11px;display:flex;flex-direction:column;gap:9px;overflow:hidden;
-}
-#history-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1}
-.hist-item{
-  background:var(--panel2);border-radius:6px;padding:6px 9px;
-  border-left:3px solid var(--c,var(--accent));font-size:.7rem;
-  animation:slide-in .25s ease-out;
-}
-.hist-type{color:var(--c);font-weight:bold;margin-bottom:1px}
-.hist-rolls{color:var(--sub);font-size:.65rem}
-.hist-total{color:var(--c);font-weight:bold;font-size:.85rem}
+#right{grid-area:rt;background:var(--panel);border-left:1px solid var(--brd);
+  padding:14px 11px;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+#hist-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1}
+.hi{background:var(--p2);border-radius:6px;padding:7px 10px;
+  border-left:3px solid var(--c,var(--acc));animation:si .25s ease-out}
+.hi-t{color:var(--c);font-weight:bold;margin-bottom:2px;font-size:.72rem}
+.hi-r{color:var(--sub);font-size:.66rem}
+.hi-v{color:var(--c);font-weight:bold;font-size:.88rem}
 
-/* ── Barra Mobile (oculta no desktop) ───────────────────────────────────── */
-#mobile-bar{display:none}
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+#mbar{display:none}
+@keyframes si{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .35s ease-out forwards}
 
-/* ══ ANIMAÇÕES ══════════════════════════════════════════════════════════════ */
-@keyframes slide-in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
-@keyframes pop-in{
-  0%{transform:scale(.5);opacity:0}55%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
-.total-pop{animation:pop-in .35s ease-out forwards}
-
-/* ══ RESPONSIVO — MOBILE ════════════════════════════════════════════════════ */
 @media(max-width:680px){
-  :root{--hdr:44px;--ftr:54px}
-
-  #app{
-    grid-template-columns:1fr;
-    grid-template-rows:var(--hdr) 1fr auto var(--ftr);
-    grid-template-areas:
-      "hd"
-      "ct"
-      "mb"
-      "ft";
-  }
-  header h1{font-size:.95rem;letter-spacing:.1em}
-
-  /* Oculta sidebars */
+  #app{grid-template-columns:1fr;grid-template-rows:44px 1fr auto 56px;
+    grid-template-areas:"hd""ct""mb""ft"}
   #left,#right{display:none}
-
-  /* Barra de controles mobile */
-  #mobile-bar{
-    grid-area:mb;display:flex;flex-direction:column;
-    background:var(--panel);border-top:1px solid var(--brd);
-    padding:10px 12px;gap:10px;
-  }
-
-  /* Dados em linha horizontal */
-  #mobile-dice-row{
-    display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;
-    scrollbar-width:none;
-  }
-  #mobile-dice-row::-webkit-scrollbar{display:none}
-  .m-dice-btn{
-    flex-shrink:0;padding:8px 14px;border-radius:8px;
-    background:var(--panel2);border:2px solid var(--brd);
-    color:var(--c);font-family:inherit;font-size:.88rem;font-weight:bold;
-    cursor:pointer;transition:.15s;white-space:nowrap;user-select:none;
-  }
-  .m-dice-btn.active{background:var(--c);color:#000;border-color:var(--c)}
-
-  /* Linha de quantidade + jogar */
-  #mobile-bottom-row{
-    display:flex;align-items:center;gap:10px;
-  }
-  #mobile-qty{
-    display:flex;align-items:center;gap:8px;
-    background:var(--panel2);border-radius:8px;padding:4px 10px;
-    border:1px solid var(--brd);
-  }
-  .m-qty-btn{
-    background:none;border:none;color:var(--accent);font-size:1.5rem;
-    cursor:pointer;padding:0 4px;font-family:inherit;user-select:none;line-height:1;
-  }
-  #m-qty-display{font-size:1.3rem;font-weight:bold;min-width:24px;text-align:center}
-
-  #m-roll-btn{
-    flex:1;padding:12px;border-radius:10px;background:var(--accent);color:#fff;
+  #mbar{grid-area:mb;display:flex;flex-direction:column;
+    background:var(--panel);border-top:1px solid var(--brd);padding:10px 12px;gap:9px}
+  #m-dice-row{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  #m-dice-row::-webkit-scrollbar{display:none}
+  .mdbtn{flex-shrink:0;padding:8px 14px;border-radius:8px;background:var(--p2);
+    border:2px solid var(--brd);color:var(--c);font-family:inherit;font-size:.88rem;
+    font-weight:bold;cursor:pointer;transition:.15s;white-space:nowrap}
+  .mdbtn.active{background:var(--c);color:#000;border-color:var(--c)}
+  #m-bot{display:flex;align-items:center;gap:10px}
+  #m-qty{display:flex;align-items:center;gap:8px;background:var(--p2);
+    border-radius:8px;padding:4px 10px;border:1px solid var(--brd)}
+  .mqbtn{background:none;border:none;color:var(--acc);font-size:1.5rem;cursor:pointer;
+    padding:0 4px;font-family:inherit;line-height:1}
+  #m-qty-d{font-size:1.3rem;font-weight:bold;min-width:24px;text-align:center}
+  #m-roll{flex:1;padding:12px;border-radius:10px;background:var(--acc);color:#fff;
     border:none;cursor:pointer;font-family:inherit;font-size:.95rem;font-weight:bold;
-    letter-spacing:.1em;text-transform:uppercase;transition:.2s;user-select:none;
-  }
-  #m-roll-btn:disabled{opacity:.45;cursor:not-allowed}
+    letter-spacing:.1em;text-transform:uppercase}
+  #m-roll:disabled{opacity:.45;cursor:not-allowed}
+  header h1{font-size:.95rem;letter-spacing:.1em}
+  #total-box{font-size:1.2rem}
 
-  /* Histórico mobile → botão toggle */
-  #m-hist-toggle{
-    position:absolute;top:calc(var(--hdr) + 8px);right:8px;z-index:20;
-    background:var(--panel2);border:1px solid var(--brd);border-radius:8px;
-    color:var(--sub);font-size:.7rem;font-family:inherit;cursor:pointer;
-    padding:5px 10px;letter-spacing:.08em;
-  }
-  #m-hist-panel{
-    display:none;position:absolute;top:calc(var(--hdr) + 36px);right:8px;
-    width:min(260px,85vw);max-height:50vh;overflow-y:auto;
+  /* Histórico mobile: botão toggle */
+  #m-hist-btn{position:absolute;top:calc(44px + 8px);right:8px;z-index:10;
+    background:var(--p2);border:1px solid var(--brd);border-radius:8px;
+    color:var(--sub);font-size:.68rem;font-family:inherit;cursor:pointer;padding:5px 9px}
+  #m-hist{display:none;position:absolute;top:calc(44px+36px);right:8px;
+    width:min(255px,84vw);max-height:48vh;overflow-y:auto;
     background:var(--panel);border:1px solid var(--brd);border-radius:10px;
-    padding:10px;z-index:20;
-    box-shadow:0 8px 32px rgba(0,0,0,.6);
-  }
-  #m-hist-panel.open{display:flex;flex-direction:column;gap:6px}
-
-  footer{padding:0 10px}
-  #total-box{font-size:1.25rem}
-  #parcelas{font-size:.65rem}
+    padding:9px;z-index:10;box-shadow:0 8px 32px rgba(0,0,0,.6);flex-direction:column;gap:6px}
+  #m-hist.open{display:flex}
 }
 </style>
 </head>
@@ -202,56 +122,51 @@ footer{
 <div id="app">
   <header><span>⚔</span><h1>RPG Dice Roller 3D</h1><span>⚔</span></header>
 
-  <!-- Painel Esquerdo (desktop) -->
   <div id="left">
     <div class="slbl">Tipo de Dado</div>
     <div id="dice-types">
-      <button class="dice-btn" data-dice="D4"  style="--c:var(--d4)"><span class="pip"></span>D4</button>
-      <button class="dice-btn" data-dice="D6"  style="--c:var(--d6)"><span class="pip"></span>D6</button>
-      <button class="dice-btn" data-dice="D8"  style="--c:var(--d8)"><span class="pip"></span>D8</button>
-      <button class="dice-btn" data-dice="D12" style="--c:var(--d12)"><span class="pip"></span>D12</button>
-      <button class="dice-btn active" data-dice="D20" style="--c:var(--d20)"><span class="pip"></span>D20</button>
+      <button class="dbtn" data-d="D4"  style="--c:var(--d4)"><span class="pip"></span>D4</button>
+      <button class="dbtn" data-d="D6"  style="--c:var(--d6)"><span class="pip"></span>D6</button>
+      <button class="dbtn" data-d="D8"  style="--c:var(--d8)"><span class="pip"></span>D8</button>
+      <button class="dbtn" data-d="D12" style="--c:var(--d12)"><span class="pip"></span>D12</button>
+      <button class="dbtn active" data-d="D20" style="--c:var(--d20)"><span class="pip"></span>D20</button>
     </div>
     <div class="slbl">Quantidade</div>
     <div id="qty-row">
-      <button class="qty-btn" id="btn-minus">−</button>
+      <button class="qbtn" id="qm">−</button>
       <span id="qty-display">1</span>
-      <button class="qty-btn" id="btn-plus">+</button>
+      <button class="qbtn" id="qp">+</button>
     </div>
     <button id="roll-btn">🎲 &nbsp;JOGAR</button>
-    <div class="hint">[ESPAÇO] para jogar</div>
-    <div class="hint">[1‑5] seleciona dado</div>
+    <div class="hint">[ESPAÇO] rolar · [1-5] dado</div>
   </div>
 
-  <!-- Centro: Three.js -->
   <div id="center">
-    <!-- Toggle histórico mobile -->
-    <button id="m-hist-toggle">HIST ▾</button>
-    <div id="m-hist-panel"></div>
+    <canvas id="c3d"></canvas>
+    <button id="m-hist-btn">HIST ▾</button>
+    <div id="m-hist"></div>
   </div>
 
-  <!-- Painel Direito (desktop) -->
   <div id="right">
     <div class="slbl">Histórico</div>
-    <div id="history-list"></div>
+    <div id="hist-list"></div>
   </div>
 
-  <!-- Barra Mobile -->
-  <div id="mobile-bar">
-    <div id="mobile-dice-row">
-      <button class="m-dice-btn" data-mdice="D4"  style="--c:var(--d4)">D4</button>
-      <button class="m-dice-btn" data-mdice="D6"  style="--c:var(--d6)">D6</button>
-      <button class="m-dice-btn" data-mdice="D8"  style="--c:var(--d8)">D8</button>
-      <button class="m-dice-btn" data-mdice="D12" style="--c:var(--d12)">D12</button>
-      <button class="m-dice-btn active" data-mdice="D20" style="--c:var(--d20)">D20</button>
+  <div id="mbar">
+    <div id="m-dice-row">
+      <button class="mdbtn" data-md="D4"  style="--c:var(--d4)">D4</button>
+      <button class="mdbtn" data-md="D6"  style="--c:var(--d6)">D6</button>
+      <button class="mdbtn" data-md="D8"  style="--c:var(--d8)">D8</button>
+      <button class="mdbtn" data-md="D12" style="--c:var(--d12)">D12</button>
+      <button class="mdbtn active" data-md="D20" style="--c:var(--d20)">D20</button>
     </div>
-    <div id="mobile-bottom-row">
-      <div id="mobile-qty">
-        <button class="m-qty-btn" id="m-btn-minus">−</button>
-        <span id="m-qty-display">1</span>
-        <button class="m-qty-btn" id="m-btn-plus">+</button>
+    <div id="m-bot">
+      <div id="m-qty">
+        <button class="mqbtn" id="mqm">−</button>
+        <span id="m-qty-d">1</span>
+        <button class="mqbtn" id="mqp">+</button>
       </div>
-      <button id="m-roll-btn">🎲 JOGAR</button>
+      <button id="m-roll">🎲 JOGAR</button>
     </div>
   </div>
 
@@ -262,281 +177,409 @@ footer{
 </div>
 
 <script>
-// ── Constantes ───────────────────────────────────────────────────────────────
-const DICE_HEX  = {D4:'#9b59b6',D6:'#3498db',D8:'#2ecc71',D12:'#e67e22',D20:'#e74c3c'};
-const DICE_SIDES = {D4:4,D6:6,D8:8,D12:12,D20:20};
+// ════════════════════════════════════════════════════════════
+//   MOTOR 3D MANUAL  (sem dependências externas)
+// ════════════════════════════════════════════════════════════
 
-// ── Estado ───────────────────────────────────────────────────────────────────
-let selDice  = 'D20';
-let quantity = 1;
-let rolling  = false;
-let diceObjs = [];
-let rollStart = null;
-const ROLL_DUR = 2000;
+// ── Dados de geometria ───────────────────────────────────────
+const PHI = (1 + Math.sqrt(5)) / 2;
 
-// ── Three.js ─────────────────────────────────────────────────────────────────
-const container = document.getElementById('center');
-const W = () => container.clientWidth;
-const H = () => container.clientHeight;
+function norm3(v){ const l=Math.hypot(...v); return v.map(x=>x/l); }
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-renderer.setSize(W(),H());
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor(0x09091a);
-container.appendChild(renderer.domElement);
+const GEO = {
+  D4: {
+    verts: [[0,1,0],[-0.816,-0.333,0.471],[0.816,-0.333,0.471],[0,-0.333,-0.943]],
+    faces: [[0,1,2],[0,2,3],[0,3,1],[1,3,2]]
+  },
+  D6: {
+    verts: [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]
+          .map(v=>norm3(v)),
+    faces: [
+      [0,1,2],[0,2,3],   // back
+      [4,6,5],[4,7,6],   // front
+      [0,4,5],[0,5,1],   // bottom
+      [3,2,6],[3,6,7],   // top
+      [0,3,7],[0,7,4],   // left
+      [1,5,6],[1,6,2]    // right
+    ]
+  },
+  D8: {
+    verts: [[0,1,0],[0,-1,0],[1,0,0],[-1,0,0],[0,0,1],[0,0,-1]],
+    faces: [[0,2,4],[0,4,3],[0,3,5],[0,5,2],[1,4,2],[1,3,4],[1,5,3],[1,2,5]]
+  },
+  D12: (()=>{
+    const b=1/PHI;
+    const vs=[
+      [1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],
+      [-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1],
+      [0,b,PHI],[0,b,-PHI],[0,-b,PHI],[0,-b,-PHI],
+      [b,PHI,0],[b,-PHI,0],[-b,PHI,0],[-b,-PHI,0],
+      [PHI,0,b],[PHI,0,-b],[-PHI,0,b],[-PHI,0,-b]
+    ].map(norm3);
+    // 12 pentagonal faces, each split into 3 triangles from centroid
+    const pentagons=[
+      [0,8,4,14,12],[0,12,1,17,16],[0,16,2,10,8],
+      [1,12,14,5,9],[1,9,11,3,17],[2,16,17,3,13],
+      [2,13,15,6,10],[4,8,10,6,18],[4,18,19,5,14],
+      [5,19,7,11,9],[6,15,7,19,18],[3,11,7,15,13]
+    ];
+    const faces=[];
+    pentagons.forEach(p=>{
+      // centroid
+      const cx=p.reduce((s,i)=>s+vs[i][0],0)/5;
+      const cy=p.reduce((s,i)=>s+vs[i][1],0)/5;
+      const cz=p.reduce((s,i)=>s+vs[i][2],0)/5;
+      const ci=vs.length+faces.length; // virtual centroid index
+      // Add centroid temporarily via face metadata
+      // Instead, triangulate using existing vertices: fan from first vertex
+      for(let k=1;k<p.length-1;k++) faces.push([p[0],p[k],p[k+1]]);
+    });
+    return {verts:vs, faces};
+  })(),
+  D20: (()=>{
+    const t=PHI, n=Math.sqrt(1+t*t);
+    const vs=[
+      [-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],
+      [0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],
+      [t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]
+    ].map(v=>v.map(x=>x/n));
+    const faces=[
+      [0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],
+      [1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],
+      [3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],
+      [4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]
+    ];
+    return {verts:vs,faces};
+  })()
+};
 
-const scene  = new THREE.Scene();
-scene.fog    = new THREE.Fog(0x09091a, 18, 35);
-
-const camera = new THREE.PerspectiveCamera(55, W()/H(), 0.1, 100);
-camera.position.set(0, 6, 13);
-camera.lookAt(0, 0, 0);
-
-// Luzes
-scene.add(new THREE.AmbientLight(0x334466, 1.3));
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-dirLight.position.set(5, 12, 8);
-dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(1024,1024);
-Object.assign(dirLight.shadow.camera,{near:.5,far:50,left:-10,right:10,top:10,bottom:-10});
-scene.add(dirLight);
-scene.add(Object.assign(new THREE.DirectionalLight(0x4466ff,.55),{position:new THREE.Vector3(-8,4,-5)}));
-const diceLight = new THREE.PointLight(0xe74c3c, 2, 14);
-diceLight.position.set(0,5,3);
-scene.add(diceLight);
-
-// Chão + grade
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(40,40),
-  new THREE.MeshStandardMaterial({color:0x060616,roughness:.9,metalness:.1})
-);
-floor.rotation.x = -Math.PI/2;
-floor.position.y = -1.8;
-floor.receiveShadow = true;
-scene.add(floor);
-const grid = new THREE.GridHelper(30,30,0x1a1a55,0x111140);
-grid.position.y = -1.79;
-scene.add(grid);
-// Bordas neon
-[-8,8].forEach(x => {
-  const b = new THREE.Mesh(new THREE.BoxGeometry(.06,.06,30),
-    new THREE.MeshBasicMaterial({color:0xe94560}));
-  b.position.set(x,-1.77,0);
-  scene.add(b);
+// Scale vertices to radius ~1
+Object.values(GEO).forEach(g=>{
+  g.verts=g.verts.map(norm3);
 });
 
-// ── Geometrias ───────────────────────────────────────────────────────────────
-function buildMesh(dtype) {
-  const geos = {
-    D4 : new THREE.TetrahedronGeometry(1.1),
-    D6 : new THREE.BoxGeometry(1.6,1.6,1.6),
-    D8 : new THREE.OctahedronGeometry(1.2),
-    D12: new THREE.DodecahedronGeometry(1.15),
-    D20: new THREE.IcosahedronGeometry(1.2),
-  };
-  const geo  = geos[dtype];
-  const clr  = new THREE.Color(DICE_HEX[dtype]);
-  const mat  = new THREE.MeshPhongMaterial({
-    color:clr,
-    emissive:clr.clone().multiplyScalar(.12),
-    specular:new THREE.Color(0xffffff),
-    shininess:90,
-    flatShading:true,
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.castShadow = true;
-  mesh.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.22})
-  ));
-  return mesh;
+// ── Cores ────────────────────────────────────────────────────
+const DICE_HEX={D4:'#9b59b6',D6:'#3498db',D8:'#2ecc71',D12:'#e67e22',D20:'#e74c3c'};
+const DICE_SIDES={D4:4,D6:6,D8:8,D12:12,D20:20};
+
+// ── Rotação 3D ───────────────────────────────────────────────
+function rx(v,a){const c=Math.cos(a),s=Math.sin(a);return[v[0],v[1]*c-v[2]*s,v[1]*s+v[2]*c]}
+function ry(v,a){const c=Math.cos(a),s=Math.sin(a);return[v[0]*c+v[2]*s,v[1],-v[0]*s+v[2]*c]}
+function rz(v,a){const c=Math.cos(a),s=Math.sin(a);return[v[0]*c-v[1]*s,v[0]*s+v[1]*c,v[2]]}
+
+function rotVert(v, ax, ay, az){return rz(ry(rx(v,ax),ay),az)}
+
+// ── Projeção perspectiva ─────────────────────────────────────
+function project(v, FOV, cx, cy){
+  const z=v[2]+FOV;
+  return[v[0]*FOV/z+cx, v[1]*FOV/z+cy];
 }
 
-// ── Sprite de número ─────────────────────────────────────────────────────────
-function makeSprite(number, hex) {
-  const S = 256, c = document.createElement('canvas');
-  c.width = c.height = S;
-  const ctx = c.getContext('2d');
-  ctx.beginPath();
-  ctx.arc(S/2,S/2,S/2-6,0,Math.PI*2);
-  ctx.fillStyle='rgba(0,0,0,.75)'; ctx.fill();
-  ctx.strokeStyle=hex; ctx.lineWidth=8; ctx.stroke();
-  ctx.fillStyle='#fff';
-  ctx.font=`bold ${number>9?108:140}px 'Courier New'`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(String(number),S/2,S/2+4);
-  const spr = new THREE.Sprite(
-    new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false})
-  );
-  spr.scale.set(2.2,2.2,1);
-  spr.visible = false;
-  return spr;
-}
+// ── Estado do jogo ───────────────────────────────────────────
+let selDice='D20', quantity=1, rolling=false;
 
-// ── Easing ───────────────────────────────────────────────────────────────────
-function easeOutBounce(t){
-  if(t<1/2.75)     return 7.5625*t*t;
-  if(t<2/2.75)   { t-=1.5/2.75;  return 7.5625*t*t+.75; }
-  if(t<2.5/2.75) { t-=2.25/2.75; return 7.5625*t*t+.9375; }
-                   t-=2.625/2.75; return 7.5625*t*t+.984375;
-}
-function easeOutExpo(t){ return t===1?1:1-Math.pow(2,-10*t); }
+const canvas=document.getElementById('c3d');
+const ctx=canvas.getContext('2d');
 
-// ── Roll ─────────────────────────────────────────────────────────────────────
-function clearDice() {
-  diceObjs.forEach(d => { scene.remove(d.mesh); scene.remove(d.sprite); });
-  diceObjs = [];
-}
+// Dados ativos na cena
+let dice=[];
 
-function startRoll() {
-  if(rolling) return;
-  rolling = true;
-  setRollBtnsDisabled(true);
-  document.getElementById('total-box').textContent = 'TOTAL: —';
-  document.getElementById('parcelas').textContent  = '';
-  clearDice();
+// ── Classe Die ────────────────────────────────────────────────
+class Die {
+  constructor(dtype, cx, cy, value){
+    this.dtype=dtype;
+    this.cx=cx; this.cy=cy;
+    this.value=value;
+    this.color=DICE_HEX[dtype];
+    this.scale=Math.min(canvas.width,canvas.height)*0.085;
 
-  const dtype  = selDice;
-  const qty    = quantity;
-  const sides  = DICE_SIDES[dtype];
-  const values = Array.from({length:qty}, () => Math.ceil(Math.random()*sides));
+    // Rotação inicial aleatória
+    this.ax=Math.random()*Math.PI*2;
+    this.ay=Math.random()*Math.PI*2;
+    this.az=Math.random()*Math.PI*2;
 
-  const spacing = Math.min(3.0, 8 / Math.max(qty,1));
-  diceLight.color.set(new THREE.Color(DICE_HEX[dtype]));
+    // Velocidade angular
+    this.vax=(Math.random()-.5)*16;
+    this.vay=(Math.random()-.5)*20;
+    this.vaz=(Math.random()-.5)*12;
 
-  diceObjs = values.map((val, i) => {
-    const mesh   = buildMesh(dtype);
-    const sprite = makeSprite(val, DICE_HEX[dtype]);
-    const x      = (i-(qty-1)/2)*spacing;
-    mesh.position.set(x, 9, 0);
-    mesh.rotation.set(Math.random()*6, Math.random()*6, Math.random()*6);
-    sprite.position.set(x, 1.4, 0);
-    scene.add(mesh); scene.add(sprite);
-    return {mesh, sprite, x,
-      vx:(Math.random()-.5)*18, vy:(Math.random()-.5)*22, vz:(Math.random()-.5)*14,
-      value:val};
-  });
-  rollStart = performance.now();
-}
-
-function finishRoll() {
-  rolling = false;
-  const values = diceObjs.map(d => d.value);
-  const total  = values.reduce((a,b)=>a+b,0);
-  const dtype  = selDice;
-
-  diceObjs.forEach((d,i) => setTimeout(()=>{ d.sprite.visible=true; }, i*130));
-
-  setTimeout(()=>{
-    const tb = document.getElementById('total-box');
-    tb.textContent = `TOTAL:  ${total}`;
-    tb.classList.remove('total-pop'); void tb.offsetWidth; tb.classList.add('total-pop');
-    if(values.length>1) document.getElementById('parcelas').textContent = values.join(' + ');
-    addHistory(dtype, values, total);
-    setRollBtnsDisabled(false);
-  }, diceObjs.length*130+150);
-}
-
-function setRollBtnsDisabled(v) {
-  document.getElementById('roll-btn').disabled    = v;
-  document.getElementById('m-roll-btn').disabled  = v;
-}
-
-// ── Histórico ─────────────────────────────────────────────────────────────────
-function addHistory(dtype, vals, total) {
-  const clr = DICE_HEX[dtype];
-  const html = `<div class="hist-item" style="--c:${clr}">
-    <div class="hist-type">${vals.length}${dtype}</div>
-    <div class="hist-rolls">[${vals.join(', ')}]</div>
-    <div class="hist-total">= ${total}</div></div>`;
-
-  // Desktop
-  const dl = document.getElementById('history-list');
-  dl.insertAdjacentHTML('afterbegin', html);
-  while(dl.children.length>14) dl.removeChild(dl.lastChild);
-
-  // Mobile painel
-  const mp = document.getElementById('m-hist-panel');
-  mp.insertAdjacentHTML('afterbegin', html);
-  while(mp.children.length>8) mp.removeChild(mp.lastChild);
-}
-
-// ── Loop ─────────────────────────────────────────────────────────────────────
-const clock = new THREE.Clock();
-function animate() {
-  requestAnimationFrame(animate);
-  const dt = clock.getDelta();
-
-  if(rolling && rollStart!==null) {
-    const elapsed = performance.now()-rollStart;
-    const t = Math.min(elapsed/ROLL_DUR, 1.0);
-    const spinDecay = 1-easeOutExpo(t);
-    diceObjs.forEach(d => {
-      const fallT  = Math.min(elapsed/900,1.0);
-      d.mesh.position.y = Math.max(0,9*(1-easeOutBounce(fallT)))-1.0;
-      d.mesh.rotation.x += d.vx*spinDecay*dt;
-      d.mesh.rotation.y += d.vy*spinDecay*dt;
-      d.mesh.rotation.z += d.vz*spinDecay*dt;
-    });
-    if(t>=1.0){ rolling=false; finishRoll(); }
-  } else if(diceObjs.length>0) {
-    diceObjs.forEach(d => { d.mesh.rotation.y += .35*dt; });
+    // Queda
+    this.fallY=canvas.height*0.8; // começa acima
+    this.fallVY=0;
+    this.phase='falling'; // falling → rolling → done
+    this.showValue=false;
+    this.bounces=0;
   }
 
-  diceLight.intensity = Math.sin(Date.now()*.002)*.3+1.6;
-  renderer.render(scene, camera);
+  update(dt){
+    if(this.phase==='falling'){
+      this.fallVY+=canvas.height*1.8*dt;
+      this.fallY-=this.fallVY*dt;
+      if(this.fallY<=0){
+        this.fallY=0;
+        // Bounce
+        this.fallVY=-this.fallVY*0.38;
+        this.bounces++;
+        if(Math.abs(this.fallVY)<canvas.height*0.06 || this.bounces>4){
+          this.fallY=0;
+          this.phase='rolling';
+        }
+      }
+    }
+
+    if(this.phase==='rolling'||this.phase==='done'){
+      // Desacelera rotação
+      const decay= this.phase==='rolling' ? 0.96 : 0.985;
+      this.vax*=Math.pow(decay,60*dt);
+      this.vay*=Math.pow(decay,60*dt);
+      this.vaz*=Math.pow(decay,60*dt);
+
+      if(this.phase==='rolling' &&
+         Math.abs(this.vax)<0.06 && Math.abs(this.vay)<0.06){
+        this.phase='done';
+        this.vay=0.4; // rotação idle suave
+      }
+      if(this.phase==='done' && !this.showValue){
+        this.showValue=true;
+      }
+    }
+
+    this.ax+=this.vax*dt;
+    this.ay+=this.vay*dt;
+    this.az+=this.vaz*dt;
+  }
+
+  draw(ctx){
+    const {verts,faces}=GEO[this.dtype];
+    const S=this.scale;
+    const FOV=S*3.2;
+    const CX=this.cx;
+    const CY=this.cy-this.fallY;
+
+    // Transforma vértices
+    const rv=verts.map(v=>rotVert(v.map(x=>x*S),this.ax,this.ay,this.az));
+
+    // Projeta para 2D
+    const pv=rv.map(v=>project(v,FOV,CX,CY));
+
+    // Monta dados das faces com profundidade e normal
+    const col=this.color;
+    const r=parseInt(col.slice(1,3),16);
+    const g=parseInt(col.slice(3,5),16);
+    const b=parseInt(col.slice(5,7),16);
+
+    const fdata=faces.map(face=>{
+      const v0=rv[face[0]],v1=rv[face[1]],v2=rv[face[2]];
+      // normal via produto vetorial
+      const ux=v1[0]-v0[0],uy=v1[1]-v0[1],uz=v1[2]-v0[2];
+      const wx=v2[0]-v0[0],wy=v2[1]-v0[1],wz=v2[2]-v0[2];
+      let nx=uy*wz-uz*wy, ny=uz*wx-ux*wz, nz=ux*wy-uy*wx;
+      // centroide
+      const cx2=face.reduce((s,i)=>s+rv[i][0],0)/face.length;
+      const cy2=face.reduce((s,i)=>s+rv[i][1],0)/face.length;
+      const cz2=face.reduce((s,i)=>s+rv[i][2],0)/face.length;
+      // garante normal aponta para fora
+      if(nx*cx2+ny*cy2+nz*cz2<0){nx=-nx;ny=-ny;nz=-nz;}
+      const avgZ=face.reduce((s,i)=>s+rv[i][2],0)/face.length;
+      return{face,nx,ny,nz,avgZ};
+    });
+
+    // Painter's sort: mais longe primeiro
+    fdata.sort((a,b)=>b.avgZ-a.avgZ);
+
+    // Iluminação: luz de cima-frente
+    const lx=0.3,ly=-0.8,lz=-0.5;
+    const ll=Math.hypot(lx,ly,lz);
+
+    fdata.forEach(({face,nx,ny,nz,avgZ})=>{
+      // Backface cull: só mostra se normal.z < 0 (aponta para câmera em -Z)
+      if(nz>=0) return;
+      const nl=Math.hypot(nx,ny,nz)||1;
+      const diff=Math.max(0,-(nx*lx+ny*ly+nz*lz)/nl/ll);
+      const lf=Math.min(1, 0.28+0.72*diff);
+
+      ctx.beginPath();
+      const [px,py]=pv[face[0]];
+      ctx.moveTo(px,py);
+      for(let k=1;k<face.length;k++){
+        const [qx,qy]=pv[face[k]];
+        ctx.lineTo(qx,qy);
+      }
+      ctx.closePath();
+      ctx.fillStyle=`rgb(${Math.round(r*lf)},${Math.round(g*lf)},${Math.round(b*lf)})`;
+      ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.18)';
+      ctx.lineWidth=1;
+      ctx.stroke();
+    });
+
+    // Valor
+    if(this.showValue){
+      const fs=Math.round(S*0.65);
+      ctx.font=`bold ${fs}px 'Courier New'`;
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(0,0,0,0.55)';
+      ctx.fillText(String(this.value),CX+2,CY+3);
+      ctx.fillStyle='#fff';
+      ctx.fillText(String(this.value),CX,CY);
+    }
+  }
 }
-animate();
 
-// ── Resize ───────────────────────────────────────────────────────────────────
-window.addEventListener('resize',()=>{
-  renderer.setSize(W(),H());
-  camera.aspect = W()/H();
-  camera.updateProjectionMatrix();
-});
+// ── Canvas resize ─────────────────────────────────────────────
+function resizeCanvas(){
+  const rect=canvas.parentElement.getBoundingClientRect();
+  canvas.width=rect.width;
+  canvas.height=rect.height;
+}
+resizeCanvas();
+window.addEventListener('resize',()=>{ resizeCanvas(); });
 
-// ── UI Desktop ───────────────────────────────────────────────────────────────
-function selectDice(d) {
-  selDice = d;
-  document.querySelectorAll('.dice-btn').forEach(b => b.classList.toggle('active', b.dataset.dice===d));
-  document.querySelectorAll('.m-dice-btn').forEach(b => b.classList.toggle('active', b.dataset.mdice===d));
-  diceLight.color.set(new THREE.Color(DICE_HEX[d]));
+// ── Fundo: grade de perspectiva ───────────────────────────────
+function drawBG(){
+  const W=canvas.width, H=canvas.height;
+  ctx.fillStyle='#09091a';
+  ctx.fillRect(0,0,W,H);
+
+  const vpx=W/2, vpy=H*0.35;
+  const gc='rgba(25,25,70,0.7)';
+  ctx.strokeStyle=gc; ctx.lineWidth=1;
+
+  for(let i=0;i<=16;i++){
+    const t=i/16;
+    const x=W*t;
+    ctx.beginPath(); ctx.moveTo(vpx,vpy); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for(let i=0;i<=12;i++){
+    const t=Math.pow(i/12,1.5);
+    const y=vpy+(H-vpy)*t;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  // bordas neon
+  ctx.strokeStyle='rgba(233,69,96,0.4)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,H-2); ctx.lineTo(W,H-2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,2); ctx.lineTo(W,2); ctx.stroke();
 }
 
-document.querySelectorAll('.dice-btn').forEach(b =>
-  b.addEventListener('click', () => selectDice(b.dataset.dice)));
+// ── Loop principal ────────────────────────────────────────────
+let last=performance.now(), allDone=false;
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min((now-last)/1000, 0.05);
+  last=now;
 
-const qtyEl = document.getElementById('qty-display');
-const mqtyEl = document.getElementById('m-qty-display');
-function setQty(n) {
-  quantity = Math.max(1, Math.min(8, n));
-  qtyEl.textContent = mqtyEl.textContent = quantity;
+  drawBG();
+
+  if(dice.length===0){
+    const W=canvas.width,H=canvas.height;
+    ctx.font=`${Math.round(W*0.018)}px 'Courier New'`;
+    ctx.fillStyle='rgba(120,120,153,0.8)';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText('Selecione o dado e pressione JOGAR',W/2,H/2);
+    return;
+  }
+
+  dice.forEach(d=>d.update(dt));
+  dice.forEach(d=>d.draw(ctx));
+
+  if(rolling && dice.every(d=>d.phase==='done')){
+    rolling=false;
+    setRollDisabled(false);
+    showResult();
+  }
 }
-document.getElementById('btn-minus').addEventListener('click', ()=>setQty(quantity-1));
-document.getElementById('btn-plus').addEventListener('click',  ()=>setQty(quantity+1));
-document.getElementById('roll-btn').addEventListener('click', startRoll);
+requestAnimationFrame(loop);
 
-// ── UI Mobile ─────────────────────────────────────────────────────────────────
-document.querySelectorAll('.m-dice-btn').forEach(b =>
-  b.addEventListener('click', () => selectDice(b.dataset.mdice)));
-document.getElementById('m-btn-minus').addEventListener('click', ()=>setQty(quantity-1));
-document.getElementById('m-btn-plus').addEventListener('click',  ()=>setQty(quantity+1));
-document.getElementById('m-roll-btn').addEventListener('click', startRoll);
+// ── Roll ──────────────────────────────────────────────────────
+function startRoll(){
+  if(rolling) return;
+  rolling=true;
+  allDone=false;
+  setRollDisabled(true);
+  document.getElementById('total-box').textContent='TOTAL: —';
+  document.getElementById('parcelas').textContent='';
+
+  const W=canvas.width, H=canvas.height;
+  const dtype=selDice, qty=quantity;
+  const sides=DICE_SIDES[dtype];
+  const vals=Array.from({length:qty},()=>Math.ceil(Math.random()*sides));
+
+  const gap=Math.min(W*0.2, W*0.85/Math.max(qty,1));
+  const startX=(W-(qty-1)*gap)/2;
+  dice=vals.map((v,i)=>new Die(dtype, startX+i*gap, H*0.5, v));
+}
+
+function showResult(){
+  const vals=dice.map(d=>d.value);
+  const total=vals.reduce((a,b)=>a+b,0);
+  const dtype=selDice;
+
+  const tb=document.getElementById('total-box');
+  tb.textContent=`TOTAL:  ${total}`;
+  tb.classList.remove('pop'); void tb.offsetWidth; tb.classList.add('pop');
+  if(vals.length>1) document.getElementById('parcelas').textContent=vals.join(' + ');
+
+  // Desktop history
+  const html=`<div class="hi" style="--c:${DICE_HEX[dtype]}">
+    <div class="hi-t">${vals.length}${dtype}</div>
+    <div class="hi-r">[${vals.join(', ')}]</div>
+    <div class="hi-v">= ${total}</div></div>`;
+  const dl=document.getElementById('hist-list');
+  dl.insertAdjacentHTML('afterbegin',html);
+  while(dl.children.length>14) dl.removeChild(dl.lastChild);
+
+  // Mobile history
+  const ml=document.getElementById('m-hist');
+  ml.insertAdjacentHTML('afterbegin',html);
+  while(ml.children.length>8) ml.removeChild(ml.lastChild);
+}
+
+function setRollDisabled(v){
+  document.getElementById('roll-btn').disabled=v;
+  document.getElementById('m-roll').disabled=v;
+}
+
+// ── UI ────────────────────────────────────────────────────────
+function selectDice(d){
+  selDice=d;
+  document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('active',b.dataset.d===d));
+  document.querySelectorAll('.mdbtn').forEach(b=>b.classList.toggle('active',b.dataset.md===d));
+}
+
+let qty=1;
+function setQty(n){
+  qty=Math.max(1,Math.min(8,n));
+  quantity=qty;
+  document.getElementById('qty-display').textContent=qty;
+  document.getElementById('m-qty-d').textContent=qty;
+}
+
+// Desktop
+document.querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>selectDice(b.dataset.d)));
+document.getElementById('qm').addEventListener('click',()=>setQty(qty-1));
+document.getElementById('qp').addEventListener('click',()=>setQty(qty+1));
+document.getElementById('roll-btn').addEventListener('click',startRoll);
+
+// Mobile
+document.querySelectorAll('.mdbtn').forEach(b=>b.addEventListener('click',()=>selectDice(b.dataset.md)));
+document.getElementById('mqm').addEventListener('click',()=>setQty(qty-1));
+document.getElementById('mqp').addEventListener('click',()=>setQty(qty+1));
+document.getElementById('m-roll').addEventListener('click',startRoll);
 
 // Toggle histórico mobile
-const mHistToggle = document.getElementById('m-hist-toggle');
-const mHistPanel  = document.getElementById('m-hist-panel');
-mHistToggle.addEventListener('click',()=>mHistPanel.classList.toggle('open'));
-document.addEventListener('click', e=>{
-  if(!mHistPanel.contains(e.target)&&e.target!==mHistToggle)
-    mHistPanel.classList.remove('open');
+const mhb=document.getElementById('m-hist-btn');
+const mhp=document.getElementById('m-hist');
+mhb.addEventListener('click',()=>mhp.classList.toggle('open'));
+document.addEventListener('click',e=>{
+  if(!mhp.contains(e.target)&&e.target!==mhb) mhp.classList.remove('open');
 });
 
-// ── Teclado ───────────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e=>{
-  if(e.code==='Space'){ e.preventDefault(); startRoll(); }
+// Teclado
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();startRoll();}
   const map={Digit1:'D4',Digit2:'D6',Digit3:'D8',Digit4:'D12',Digit5:'D20'};
   if(map[e.code]) selectDice(map[e.code]);
 });

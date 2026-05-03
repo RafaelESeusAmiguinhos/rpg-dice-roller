@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python --version)",
+      "PowerShell(py *)",
+      "PowerShell(Start-Process python -ArgumentList '\"C:\\\\Users\\\\rafin\\\\Downloads\\\\Projeto dado\\\\dado.py\"' -WindowStyle Normal)",
+      "PowerShell(python -c \"import tkinter; print\\('tkinter OK -', tkinter.TkVersion\\)\")",
+      "PowerShell(gh *)",
+      "PowerShell(winget *)",
+      "PowerShell($gitPath = \\(Get-ChildItem \"C:\\\\Program Files\\\\Git\\\\bin\\\\git.exe\" -ErrorAction SilentlyContinue\\).FullName; if \\($gitPath\\) { Write-Host \"Git found at: $gitPath\" } else { Write-Host \"Not found in default path\" }; $env:PATH += \";C:\\\\Program Files\\\\Git\\\\bin\"; git --version)",
+      "PowerShell(gh auth *)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status)",
+      "PowerShell(Get-ChildItem *)",
+      "WebSearch",
+      "PowerShell(pip install *)",
+      "PowerShell(python -m pip install ursina)",
+      "PowerShell(& \"C:\\\\Users\\\\rafin\\\\AppData\\\\Roaming\\\\uv\\\\python\\\\cpython-3.14.4-windows-x86_64-none\\\\python.exe\" -m pip install ursina)",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\rafin\\\\Downloads\\\\Projeto dado\\\\.venv\\\\Scripts\\\\python.exe\" -ArgumentList '\"C:\\\\Users\\\\rafin\\\\Downloads\\\\Projeto dado\\\\dado.py\"' -WorkingDirectory \"C:\\\\Users\\\\rafin\\\\Downloads\\\\Projeto dado\" -WindowStyle Normal)",
+      "PowerShell(python -m pip install pygame --quiet)",
+      "PowerShell(python -m pip install pygame-ce)",
+      "PowerShell(Start-Process python -ArgumentList '\"C:\\\\Users\\\\rafin\\\\Downloads\\\\Projeto dado\\\\dado.py\"' -WorkingDirectory \"C:\\\\Users\\\\rafin\\\\Downloads\\\\Projeto dado\" -WindowStyle Normal)",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\rafin\\\\Downloads\\\\Projeto dado\\\\index.html\")",
+      "PowerShell(git *)"
+    ]
+  }
+}
