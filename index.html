@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>RPG Dice Roller 3D</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e94560">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dice Roller">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
 :root{
   --bg:#09091a;--panel:#0e1428;--p2:#141e3a;--brd:#252f55;
@@ -583,6 +590,13 @@ document.addEventListener('keydown',e=>{
   const map={Digit1:'D4',Digit2:'D6',Digit3:'D8',Digit4:'D12',Digit5:'D20'};
   if(map[e.code]) selectDice(map[e.code]);
 });
+
+// Service Worker (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
